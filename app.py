@@ -98,6 +98,23 @@ st.markdown("""
         color: #666;
         margin-top: 5px;
     }
+    .credits {
+        font-size: 0.8rem;
+        color: #666;
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .credits a {
+        color: #4facfe;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    .credits a:hover {
+        color: #66a6ff;
+        text-decoration: underline;
+    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -277,12 +294,23 @@ with st.sidebar:
                     if st.session_state.current_chat_id == chat_id:
                         st.session_state.current_chat_id = "Default Chat"
                     st.rerun()
+    
+    # Credits at bottom of sidebar
+    st.markdown("""
+        <div class="credits">
+            Created by <a href="https://www.linkedin.com/in/bettercallmanav/" target="_blank">Manav</a><br>
+            View on <a href="https://github.com/bettercallmanav/Claude-AI-Web-Interface" target="_blank">GitHub</a>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Main chat interface header
 st.markdown(f"""
     <div class="header-container">
         <div class="title-section">
             <h1 class="main-title">Claude AI Assistant</h1>
+            <div class="credits">
+                by <a href="https://www.linkedin.com/in/bettercallmanav/" target="_blank">Manav</a>
+            </div>
         </div>
         <div class="info-section">
             <div class="info-badge">
