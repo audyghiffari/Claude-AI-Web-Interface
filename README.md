@@ -1,5 +1,7 @@
 # Claude AI Assistant Web Interface
 
+Created by [Manav](https://www.linkedin.com/in/bettercallmanav/) | [View on GitHub](https://github.com/bettercallmanav/Claude-AI-Web-Interface)
+
 A modern, feature-rich web application built with Streamlit for interacting with Claude AI models through the Anthropic API. This interface provides a user-friendly way to chat with various Claude models while offering extensive customization options.
 
 ## Features
@@ -49,7 +51,7 @@ anthropic
 2. Run the application:
 
    ```bash
-   streamlit run app.py
+   streamlit run 2.py
    ```
 
 3. Enter your Anthropic API key in the sidebar when prompted
