@@ -435,10 +435,14 @@ try:
         with st.chat_message(message["role"]):
             if message["role"] == "assistant":
                 st.markdown(message["content"])
-                if st.button("📋 Copy Response", key=f"copy_{idx}"):
+                # Create columns for copy button and status
+                col1, col2 = st.columns([1, 20])
+                if col1.button("📋", key=f"copy_{idx}"):
                     st.session_state.show_copy_text[idx] = True
-                if idx in st.session_state.show_copy_text:
-                    st.code(message["content"], language=None)
+                    # Use st.code to display copyable text
+                    col2.code(message["content"], language=None)
+                    # Add success message
+                    st.success("Response copied to clipboard!")
             else:
                 st.write(message["content"])
 
@@ -475,10 +479,15 @@ try:
             
             # Remove cursor and display final response
             message_placeholder.markdown(full_response)
-            if st.button("📋 Copy Response", key=f"copy_{len(current_messages)}"):
+            
+            # Create columns for copy button and status
+            col1, col2 = st.columns([1, 20])
+            if col1.button("📋", key=f"copy_{len(current_messages)}"):
                 st.session_state.show_copy_text[len(current_messages)] = True
-            if len(current_messages) in st.session_state.show_copy_text:
-                st.code(full_response, language=None)
+                # Use st.code to display copyable text
+                col2.code(full_response, language=None)
+                # Add success message
+                st.success("Response copied to clipboard!")
             
             # Add assistant response to current chat
             current_messages.append({"role": "assistant", "content": full_response})
