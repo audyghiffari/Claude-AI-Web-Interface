@@ -5,9 +5,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 
-# Initialize global db variable
-db = None
-
 # Initialize Firebase
 if not firebase_admin._apps:
     # Initialize with credentials from Streamlit secrets
@@ -25,13 +22,13 @@ if not firebase_admin._apps:
         "universe_domain": "googleapis.com"
     })
     firebase_admin.initialize_app(cred)
-    global db
+    db = firestore.client()
+else:
     db = firestore.client()
 
 # Firebase helper functions
 def save_chat_to_firebase(chat_id, messages, user_id="default"):
     """Save chat messages to Firebase"""
-    global db
     doc_ref = db.collection('monica-chat').document(f"{user_id}_{chat_id}")
     doc_ref.set({
         'messages': messages,
@@ -41,7 +38,6 @@ def save_chat_to_firebase(chat_id, messages, user_id="default"):
 
 def load_chats_from_firebase(user_id="default"):
     """Load all chats for a user from Firebase"""
-    global db
     chats = {}
     chat_docs = db.collection('monica-chat').where('user_id', '==', user_id).stream()
     
