@@ -1,6 +1,41 @@
 import streamlit as st
 import anthropic
 from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
+import os
+
+# Initialize Firebase
+if not firebase_admin._apps:
+    cred = credentials.Certificate('firebase-credentials.json')
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
+
+# Firebase helper functions
+def save_chat_to_firebase(chat_id, messages, user_id="default"):
+    """Save chat messages to Firebase"""
+    doc_ref = db.collection('chats').document(f"{user_id}_{chat_id}")
+    doc_ref.set({
+        'messages': messages,
+        'updated_at': datetime.now(),
+        'user_id': user_id
+    })
+
+def load_chats_from_firebase(user_id="default"):
+    """Load all chats for a user from Firebase"""
+    chats = {}
+    chat_docs = db.collection('chats').where('user_id', '==', user_id).stream()
+    
+    for doc in chat_docs:
+        chat_id = doc.id.replace(f"{user_id}_", "")
+        chat_data = doc.to_dict()
+        chats[chat_id] = chat_data['messages']
+    
+    if not chats:
+        chats["Default Chat"] = []
+        save_chat_to_firebase("Default Chat", [])
+    
+    return chats
 
 # Set page config
 st.set_page_config(
@@ -136,7 +171,7 @@ CLAUDE_MODELS = {
 
 # Initialize session states
 if "all_chats" not in st.session_state:
-    st.session_state.all_chats = {}
+    st.session_state.all_chats = load_chats_from_firebase()
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = "Default Chat"
 if "system_prompt" not in st.session_state:
@@ -151,6 +186,7 @@ if "selected_model" not in st.session_state:
 # Initialize default chat if it doesn't exist
 if "Default Chat" not in st.session_state.all_chats:
     st.session_state.all_chats["Default Chat"] = []
+    save_chat_to_firebase("Default Chat", [])
 
 # Sidebar
 with st.sidebar:
@@ -264,6 +300,7 @@ with st.sidebar:
                     new_chat_name = f"{base_name} ({counter})"
                 st.session_state.all_chats[new_chat_name] = []
                 st.session_state.current_chat_id = new_chat_name
+                save_chat_to_firebase(new_chat_name, [])
                 st.rerun()
     
     # Chat History Section
@@ -291,6 +328,8 @@ with st.sidebar:
             if chat_id != "Default Chat":
                 if col2.button("🗑️", key=f"delete_{chat_id}"):
                     del st.session_state.all_chats[chat_id]
+                    # Delete from Firebase
+                    db.collection('chats').document(f"default_{chat_id}").delete()
                     if st.session_state.current_chat_id == chat_id:
                         st.session_state.current_chat_id = "Default Chat"
                     st.rerun()
@@ -387,6 +426,9 @@ try:
             
             # Add assistant response to current chat
             current_messages.append({"role": "assistant", "content": full_response})
+            
+            # Save to Firebase after each message
+            save_chat_to_firebase(st.session_state.current_chat_id, current_messages)
             
 except Exception as e:
     st.error(f"An error occurred: {str(e)}")
