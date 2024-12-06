@@ -27,7 +27,7 @@ if not firebase_admin._apps:
 # Firebase helper functions
 def save_chat_to_firebase(chat_id, messages, user_id="default"):
     """Save chat messages to Firebase"""
-    doc_ref = db.collection('chats').document(f"{user_id}_{chat_id}")
+    doc_ref = db.collection('monica-chat').document(f"{user_id}_{chat_id}")
     doc_ref.set({
         'messages': messages,
         'updated_at': datetime.now(),
@@ -37,7 +37,7 @@ def save_chat_to_firebase(chat_id, messages, user_id="default"):
 def load_chats_from_firebase(user_id="default"):
     """Load all chats for a user from Firebase"""
     chats = {}
-    chat_docs = db.collection('chats').where('user_id', '==', user_id).stream()
+    chat_docs = db.collection('monica-chat').where('user_id', '==', user_id).stream()
     
     for doc in chat_docs:
         chat_id = doc.id.replace(f"{user_id}_", "")
