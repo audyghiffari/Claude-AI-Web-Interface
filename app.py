@@ -175,6 +175,28 @@ st.markdown("""
         color: #66a6ff;
         text-decoration: underline;
     }
+    .copy-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        color: #fff;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .copy-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    .message-container {
+        position: relative;
+    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -183,6 +205,18 @@ st.markdown("""
         animation: fadeIn 0.5s ease-out;
     }
     </style>
+    <script>
+    function copyToClipboard(messageId) {
+        const messageText = document.getElementById(messageId).innerText;
+        navigator.clipboard.writeText(messageText).then(() => {
+            const button = document.querySelector(`button[onclick="copyToClipboard('${messageId}')"]`);
+            button.innerHTML = '✓ Copied!';
+            setTimeout(() => {
+                button.innerHTML = '📋 Copy';
+            }, 2000);
+        });
+    }
+    </script>
 """, unsafe_allow_html=True)
 
 # Available Claude models
@@ -207,6 +241,8 @@ if "temperature" not in st.session_state:
     st.session_state.temperature = 1.0
 if "selected_model" not in st.session_state:
     st.session_state.selected_model = "Claude 3.5 Sonnet (Default)"
+if "message_counter" not in st.session_state:
+    st.session_state.message_counter = 0
 
 # Initialize default chat if it doesn't exist
 if "Default Chat" not in st.session_state.all_chats:
@@ -372,7 +408,7 @@ with st.sidebar:
 st.markdown(f"""
     <div class="header-container">
         <div class="title-section">
-            <h1 class="main-title">Claude AI Assistant</h1>Y
+            <h1 class="main-title">Claude AI Assistant</h1>
         </div>
         <div class="info-section">
             <div class="info-badge">
@@ -408,7 +444,17 @@ try:
     current_messages = st.session_state.all_chats[st.session_state.current_chat_id]
     for message in current_messages:
         with st.chat_message(message["role"]):
-            st.write(message["content"])
+            if message["role"] == "assistant":
+                message_id = f"message_{st.session_state.message_counter}"
+                st.markdown(f"""
+                    <div class="message-container">
+                        <div id="{message_id}">{message["content"]}</div>
+                        <button class="copy-button" onclick="copyToClipboard('{message_id}')">📋 Copy</button>
+                    </div>
+                """, unsafe_allow_html=True)
+                st.session_state.message_counter += 1
+            else:
+                st.write(message["content"])
 
     # Chat input
     if prompt := st.chat_input("Type your message here..."):
@@ -444,8 +490,15 @@ try:
                     full_response += text
                     message_placeholder.markdown(full_response + "▌")
                 
-                # Remove cursor and display final response
-                message_placeholder.markdown(full_response)
+                # Remove cursor and display final response with copy button
+                message_id = f"message_{st.session_state.message_counter}"
+                message_placeholder.markdown(f"""
+                    <div class="message-container">
+                        <div id="{message_id}">{full_response}</div>
+                        <button class="copy-button" onclick="copyToClipboard('{message_id}')">📋 Copy</button>
+                    </div>
+                """, unsafe_allow_html=True)
+                st.session_state.message_counter += 1
             
             # Add assistant response to current chat
             current_messages.append({"role": "assistant", "content": full_response})
