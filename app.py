@@ -372,10 +372,7 @@ with st.sidebar:
 st.markdown(f"""
     <div class="header-container">
         <div class="title-section">
-            <h1 class="main-title">Claude AI Assistant</h1>
-            <div class="credits">
-                by <a href="https://www.linkedin.com/in/bettercallmanav/" target="_blank">Manav</a>
-            </div>
+            <h1 class="main-title">Claude AI Assistant</h1>Y
         </div>
         <div class="info-section">
             <div class="info-badge">
