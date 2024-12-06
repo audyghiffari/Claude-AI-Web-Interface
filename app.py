@@ -187,6 +187,15 @@ st.markdown("""
         padding: 2px 8px;
         font-size: 12px;
     }
+    .copyable-text {
+        background-color: #f0f2f6;
+        border-radius: 4px;
+        padding: 8px;
+        margin-top: 4px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -212,6 +221,8 @@ if "temperature" not in st.session_state:
     st.session_state.temperature = 1.0
 if "selected_model" not in st.session_state:
     st.session_state.selected_model = "Claude 3.5 Sonnet (Default)"
+if "show_copy_text" not in st.session_state:
+    st.session_state.show_copy_text = {}
 
 # Initialize default chat if it doesn't exist
 if "Default Chat" not in st.session_state.all_chats:
@@ -414,13 +425,11 @@ try:
     for idx, message in enumerate(current_messages):
         with st.chat_message(message["role"]):
             if message["role"] == "assistant":
-                col1, col2 = st.columns([20, 1])
-                with col1:
-                    st.markdown(message["content"])
-                with col2:
-                    if st.button("📋", key=f"copy_{idx}", help="Copy to clipboard"):
-                        st.toast("Copied to clipboard! ✅")
-                        st.session_state[f"clipboard_{idx}"] = message["content"]
+                st.markdown(message["content"])
+                if st.button("📋 Copy Response", key=f"copy_{idx}"):
+                    st.session_state.show_copy_text[idx] = True
+                if idx in st.session_state.show_copy_text:
+                    st.code(message["content"], language=None)
             else:
                 st.write(message["content"])
 
@@ -459,19 +468,10 @@ try:
                     message_placeholder.markdown(full_response + "▌")
                 
                 # Remove cursor and display final response
-                col1, col2 = st.columns([20, 1])
-                with col1:
-                    message_placeholder.markdown(full_response)
-                with col2:
-                    if st.button("📋", key=f"copy_{len(current_messages)}", help="Copy to clipboard"):
-                        st.toast("Copied to clipboard! ✅")
-                        st.session_state[f"clipboard_{len(current_messages)}"] = full_response
+                message_placeholder.markdown(full_response)
+                if st.button("📋 Copy Response", key=f"copy_{len(current_messages)}"):
+                    st.session_state.show_copy_text[len(current_messages)] = True
+                if len(current_messages) in st.session_state.show_copy_text:
+                    st.code(full_response, language=None)
             
             # Add assistant response to current chat
-            current_messages.append({"role": "assistant", "content": full_response})
-            
-            # Save to Firebase after each message
-            save_chat_to_firebase(st.session_state.current_chat_id, current_messages)
-            
-except Exception as e:
-    st.error(f"An error occurred: {str(e)}")
