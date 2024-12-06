@@ -4,7 +4,6 @@ from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
-import pyperclip
 
 # Initialize Firebase
 if not firebase_admin._apps:
@@ -63,15 +62,6 @@ def load_chats_from_firebase(user_id="default"):
     
     return chats
 
-def copy_to_clipboard(text):
-    """Copy text to clipboard using pyperclip"""
-    try:
-        pyperclip.copy(text)
-        return True
-    except Exception as e:
-        st.error(f"Failed to copy to clipboard: {str(e)}")
-        return False
-
 # Set page config
 st.set_page_config(
     page_title="Claude AI Assistant",
@@ -80,7 +70,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS and JavaScript
 st.markdown("""
     <style>
     .sidebar-header {
@@ -185,6 +175,23 @@ st.markdown("""
         color: #66a6ff;
         text-decoration: underline;
     }
+    .copy-button {
+        padding: 0.3rem 0.6rem;
+        background: #4facfe;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: background 0.3s ease;
+    }
+    .copy-button:hover {
+        background: #66a6ff;
+    }
+    .message-container {
+        position: relative;
+        margin-bottom: 1rem;
+    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -192,12 +199,17 @@ st.markdown("""
     .header-container {
         animation: fadeIn 0.5s ease-out;
     }
-    .stButton button {
-        width: auto;
-        padding: 2px 8px;
-        font-size: 12px;
-    }
     </style>
+    <script>
+    function copyText(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+    }
+    </script>
 """, unsafe_allow_html=True)
 
 # Available Claude models
@@ -424,13 +436,14 @@ try:
     for message in current_messages:
         with st.chat_message(message["role"]):
             if message["role"] == "assistant":
-                col1, col2 = st.columns([20, 1])
-                with col1:
-                    st.write(message["content"])
-                with col2:
-                    if st.button("📋", key=f"copy_{hash(message['content'])}", help="Copy to clipboard"):
-                        if copy_to_clipboard(message["content"]):
-                            st.success("Copied to clipboard!", icon="✅")
+                st.markdown(f"""
+                    <div class="message-container">
+                        {message["content"]}
+                        <button class="copy-button" onclick="copyText(`{message['content'].replace('`', '\\`')}`)">
+                            📋 Copy
+                        </button>
+                    </div>
+                """, unsafe_allow_html=True)
             else:
                 st.write(message["content"])
 
@@ -468,20 +481,7 @@ try:
                     full_response += text
                     message_placeholder.markdown(full_response + "▌")
                 
-                # Remove cursor and display final response
-                col1, col2 = st.columns([20, 1])
-                with col1:
-                    message_placeholder.markdown(full_response)
-                with col2:
-                    if st.button("📋", key=f"copy_{hash(full_response)}", help="Copy to clipboard"):
-                        if copy_to_clipboard(full_response):
-                            st.success("Copied to clipboard!", icon="✅")
-            
-            # Add assistant response to current chat
-            current_messages.append({"role": "assistant", "content": full_response})
-            
-            # Save to Firebase after each message
-            save_chat_to_firebase(st.session_state.current_chat_id, current_messages)
-            
-except Exception as e:
-    st.error(f"An error occurred: {str(e)}")
+                # Remove cursor and display final response with copy button
+                message_placeholder.markdown(f"""
+                    <div class="message-container">
+                        {full_response}
