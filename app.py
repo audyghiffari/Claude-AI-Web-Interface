@@ -4,6 +4,7 @@ from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+import pyperclip
 
 # Initialize Firebase
 if not firebase_admin._apps:
@@ -61,6 +62,15 @@ def load_chats_from_firebase(user_id="default"):
         save_chat_to_firebase("Default Chat", [])
     
     return chats
+
+def copy_to_clipboard(text):
+    """Copy text to clipboard using pyperclip"""
+    try:
+        pyperclip.copy(text)
+        return True
+    except Exception as e:
+        st.error(f"Failed to copy to clipboard: {str(e)}")
+        return False
 
 # Set page config
 st.set_page_config(
@@ -175,28 +185,6 @@ st.markdown("""
         color: #66a6ff;
         text-decoration: underline;
     }
-    .copy-button {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        padding: 5px 10px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
-        color: #fff;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    .copy-button:hover {
-        background: rgba(255, 255, 255, 0.2);
-    }
-    .message-container {
-        position: relative;
-    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -204,19 +192,12 @@ st.markdown("""
     .header-container {
         animation: fadeIn 0.5s ease-out;
     }
-    </style>
-    <script>
-    function copyToClipboard(messageId) {
-        const messageText = document.getElementById(messageId).innerText;
-        navigator.clipboard.writeText(messageText).then(() => {
-            const button = document.querySelector(`button[onclick="copyToClipboard('${messageId}')"]`);
-            button.innerHTML = '✓ Copied!';
-            setTimeout(() => {
-                button.innerHTML = '📋 Copy';
-            }, 2000);
-        });
+    .stButton button {
+        width: auto;
+        padding: 2px 8px;
+        font-size: 12px;
     }
-    </script>
+    </style>
 """, unsafe_allow_html=True)
 
 # Available Claude models
@@ -241,8 +222,6 @@ if "temperature" not in st.session_state:
     st.session_state.temperature = 1.0
 if "selected_model" not in st.session_state:
     st.session_state.selected_model = "Claude 3.5 Sonnet (Default)"
-if "message_counter" not in st.session_state:
-    st.session_state.message_counter = 0
 
 # Initialize default chat if it doesn't exist
 if "Default Chat" not in st.session_state.all_chats:
@@ -445,14 +424,13 @@ try:
     for message in current_messages:
         with st.chat_message(message["role"]):
             if message["role"] == "assistant":
-                message_id = f"message_{st.session_state.message_counter}"
-                st.markdown(f"""
-                    <div class="message-container">
-                        <div id="{message_id}">{message["content"]}</div>
-                        <button class="copy-button" onclick="copyToClipboard('{message_id}')">📋 Copy</button>
-                    </div>
-                """, unsafe_allow_html=True)
-                st.session_state.message_counter += 1
+                col1, col2 = st.columns([20, 1])
+                with col1:
+                    st.write(message["content"])
+                with col2:
+                    if st.button("📋", key=f"copy_{hash(message['content'])}", help="Copy to clipboard"):
+                        if copy_to_clipboard(message["content"]):
+                            st.success("Copied to clipboard!", icon="✅")
             else:
                 st.write(message["content"])
 
@@ -490,15 +468,14 @@ try:
                     full_response += text
                     message_placeholder.markdown(full_response + "▌")
                 
-                # Remove cursor and display final response with copy button
-                message_id = f"message_{st.session_state.message_counter}"
-                message_placeholder.markdown(f"""
-                    <div class="message-container">
-                        <div id="{message_id}">{full_response}</div>
-                        <button class="copy-button" onclick="copyToClipboard('{message_id}')">📋 Copy</button>
-                    </div>
-                """, unsafe_allow_html=True)
-                st.session_state.message_counter += 1
+                # Remove cursor and display final response
+                col1, col2 = st.columns([20, 1])
+                with col1:
+                    message_placeholder.markdown(full_response)
+                with col2:
+                    if st.button("📋", key=f"copy_{hash(full_response)}", help="Copy to clipboard"):
+                        if copy_to_clipboard(full_response):
+                            st.success("Copied to clipboard!", icon="✅")
             
             # Add assistant response to current chat
             current_messages.append({"role": "assistant", "content": full_response})
