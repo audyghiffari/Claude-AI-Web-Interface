@@ -4,6 +4,7 @@ from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+import html
 
 # Initialize Firebase
 if not firebase_admin._apps:
@@ -61,6 +62,10 @@ def load_chats_from_firebase(user_id="default"):
         save_chat_to_firebase("Default Chat", [])
     
     return chats
+
+def format_message_for_html(message):
+    """Format message content for safe HTML display"""
+    return html.escape(message).replace('\n', '<br>')
 
 # Set page config
 st.set_page_config(
@@ -175,22 +180,24 @@ st.markdown("""
         color: #66a6ff;
         text-decoration: underline;
     }
+    .message-container {
+        position: relative;
+        padding-right: 40px;
+    }
     .copy-button {
-        padding: 0.3rem 0.6rem;
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 4px 8px;
         background: #4facfe;
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.8rem;
-        transition: background 0.3s ease;
+        font-size: 12px;
     }
     .copy-button:hover {
         background: #66a6ff;
-    }
-    .message-container {
-        position: relative;
-        margin-bottom: 1rem;
     }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
@@ -200,16 +207,6 @@ st.markdown("""
         animation: fadeIn 0.5s ease-out;
     }
     </style>
-    <script>
-    function copyText(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-    }
-    </script>
 """, unsafe_allow_html=True)
 
 # Available Claude models
@@ -433,17 +430,16 @@ try:
     
     # Display current chat messages
     current_messages = st.session_state.all_chats[st.session_state.current_chat_id]
-    for message in current_messages:
+    for idx, message in enumerate(current_messages):
         with st.chat_message(message["role"]):
             if message["role"] == "assistant":
-                st.markdown(f"""
-                    <div class="message-container">
-                        {message["content"]}
-                        <button class="copy-button" onclick="copyText(`{message['content'].replace('`', '\\`')}`)">
-                            📋 Copy
-                        </button>
-                    </div>
-                """, unsafe_allow_html=True)
+                col1, col2 = st.columns([20, 1])
+                with col1:
+                    st.write(message["content"])
+                with col2:
+                    if st.button("📋", key=f"copy_{idx}", help="Copy to clipboard"):
+                        st.write(f'<script>navigator.clipboard.writeText("{html.escape(message["content"])}");</script>', unsafe_allow_html=True)
+                        st.success("Copied to clipboard!", icon="✅")
             else:
                 st.write(message["content"])
 
@@ -481,7 +477,11 @@ try:
                     full_response += text
                     message_placeholder.markdown(full_response + "▌")
                 
-                # Remove cursor and display final response with copy button
-                message_placeholder.markdown(f"""
-                    <div class="message-container">
-                        {full_response}
+                # Remove cursor and display final response
+                col1, col2 = st.columns([20, 1])
+                with col1:
+                    message_placeholder.markdown(full_response)
+                with col2:
+                    if st.button("📋", key=f"copy_{len(current_messages)}", help="Copy to clipboard"):
+                        st.write(f'<script>navigator.clipboard.writeText("{html.escape(full_response)}");</script>', unsafe_allow_html=True)
+                        st.success("Copied to clipboard!", icon="✅")
