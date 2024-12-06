@@ -36,6 +36,16 @@ def save_chat_to_firebase(chat_id, messages, user_id="default"):
         'user_id': user_id
     })
 
+def delete_chat_from_firebase(chat_id, user_id="default"):
+    """Delete chat from Firebase"""
+    try:
+        doc_ref = db.collection('monica-chat').document(f"{user_id}_{chat_id}")
+        doc_ref.delete()
+        return True
+    except Exception as e:
+        st.error(f"Error deleting chat from Firebase: {str(e)}")
+        return False
+
 def load_chats_from_firebase(user_id="default"):
     """Load all chats for a user from Firebase"""
     chats = {}
@@ -342,12 +352,13 @@ with st.sidebar:
             
             if chat_id != "Default Chat":
                 if col2.button("🗑️", key=f"delete_{chat_id}"):
-                    del st.session_state.all_chats[chat_id]
-                    # Delete from Firebase
-                    db.collection('chats').document(f"default_{chat_id}").delete()
-                    if st.session_state.current_chat_id == chat_id:
-                        st.session_state.current_chat_id = "Default Chat"
-                    st.rerun()
+                    # Delete from Firebase first
+                    if delete_chat_from_firebase(chat_id):
+                        # If Firebase deletion successful, update local state
+                        del st.session_state.all_chats[chat_id]
+                        if st.session_state.current_chat_id == chat_id:
+                            st.session_state.current_chat_id = "Default Chat"
+                        st.rerun()
     
     # Credits at bottom of sidebar
     st.markdown("""
