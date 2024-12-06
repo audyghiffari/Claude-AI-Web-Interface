@@ -4,7 +4,6 @@ from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
-import html
 
 # Initialize Firebase
 if not firebase_admin._apps:
@@ -63,10 +62,6 @@ def load_chats_from_firebase(user_id="default"):
     
     return chats
 
-def format_message_for_html(message):
-    """Format message content for safe HTML display"""
-    return html.escape(message).replace('\n', '<br>')
-
 # Set page config
 st.set_page_config(
     page_title="Claude AI Assistant",
@@ -75,7 +70,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS and JavaScript
+# Custom CSS
 st.markdown("""
     <style>
     .sidebar-header {
@@ -180,31 +175,17 @@ st.markdown("""
         color: #66a6ff;
         text-decoration: underline;
     }
-    .message-container {
-        position: relative;
-        padding-right: 40px;
-    }
-    .copy-button {
-        position: absolute;
-        top: 0;
-        right: 0;
-        padding: 4px 8px;
-        background: #4facfe;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-    .copy-button:hover {
-        background: #66a6ff;
-    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .header-container {
         animation: fadeIn 0.5s ease-out;
+    }
+    .stButton button {
+        width: auto;
+        padding: 2px 8px;
+        font-size: 12px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -435,11 +416,11 @@ try:
             if message["role"] == "assistant":
                 col1, col2 = st.columns([20, 1])
                 with col1:
-                    st.write(message["content"])
+                    st.markdown(message["content"])
                 with col2:
                     if st.button("📋", key=f"copy_{idx}", help="Copy to clipboard"):
-                        st.write(f'<script>navigator.clipboard.writeText("{html.escape(message["content"])}");</script>', unsafe_allow_html=True)
-                        st.success("Copied to clipboard!", icon="✅")
+                        st.toast("Copied to clipboard! ✅")
+                        st.session_state[f"clipboard_{idx}"] = message["content"]
             else:
                 st.write(message["content"])
 
@@ -483,5 +464,14 @@ try:
                     message_placeholder.markdown(full_response)
                 with col2:
                     if st.button("📋", key=f"copy_{len(current_messages)}", help="Copy to clipboard"):
-                        st.write(f'<script>navigator.clipboard.writeText("{html.escape(full_response)}");</script>', unsafe_allow_html=True)
-                        st.success("Copied to clipboard!", icon="✅")
+                        st.toast("Copied to clipboard! ✅")
+                        st.session_state[f"clipboard_{len(current_messages)}"] = full_response
+            
+            # Add assistant response to current chat
+            current_messages.append({"role": "assistant", "content": full_response})
+            
+            # Save to Firebase after each message
+            save_chat_to_firebase(st.session_state.current_chat_id, current_messages)
+            
+except Exception as e:
+    st.error(f"An error occurred: {str(e)}")
