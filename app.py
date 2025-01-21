@@ -372,7 +372,7 @@ with st.sidebar:
 st.markdown(f"""
     <div class="header-container">
         <div class="title-section">
-            <h1 class="main-title">Claude AI Assistant</h1>Y
+            <h1 class="main-title">Claude AI Assistant</h1>
         </div>
         <div class="info-section">
             <div class="info-badge">
